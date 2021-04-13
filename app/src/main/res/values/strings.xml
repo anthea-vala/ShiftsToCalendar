@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Text to Calender</string>
+    <string name="title_activity_shifts_added">ShiftsAdded</string>
+</resources>
