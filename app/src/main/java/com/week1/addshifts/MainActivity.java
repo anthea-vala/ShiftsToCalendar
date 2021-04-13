@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.i("YEP", "start");
+
         // link variables to views
         addToCalanderBtn = findViewById(R.id.homeButton);
         shiftsInput = findViewById(R.id.shifts);
@@ -46,22 +46,24 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CALENDAR},1);
             return;
         }
-        Log.i("YEP", "perm");
+
         addToCalanderBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //convert user input to string
                 shifts = shiftsInput.getText().toString();
-                Log.i("YEP", "after click");
 
-                //check if input is empty or not a valid ROSS text
+                //check if input is empty or not a valid ROSS text (ie. doesn't start with "Your shifts"
                 if (shifts.isEmpty())
                     Toast.makeText(getApplicationContext(), "Please enter your shifts", Toast.LENGTH_SHORT).show();
                 else if (shifts.substring(0, 11).equals("Your shifts")) {
+                    //if input is valid ROSS test, clean up data into an array that can be easily inputted to calendar
                     String[] shiftsArray = cleanData(shifts);
 
+                    //add events into calendar
                     addEvent(shiftsArray);
 
+                    //display new page to verify that shifts are being added to calendar
                     Intent intent = new Intent(getApplicationContext(), ShiftsAdded.class);
                     startActivity(intent);
                 } else
@@ -73,11 +75,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String[] cleanData(String text) {
+        /* Example text for context:
+        "Your shifts
+        Sun, 4th Apr 09:45-17:00, 30min break
+        Wed, 7th Apr 18:00-19:00, No break
+        Sun, 11th Apr 09:45-17:00, 30min break
+        Sun, 18th Apr 09:45-17:00, 30min break
+        Sun, 25th Apr PHOFF (2.75h), No break
+        Sun, 25th Apr 13:00-17:00, No break
+        Access account at rosters.in.telstra.com.au"
+        */
+
         //remove extra irrelevant writing at start and end of text message
         String newText = text.replaceAll("Your shifts", "");
         newText = newText.replaceAll("Access account at rosters.in.telstra.com.au", "");
 
-        //split into dates
+        //split into day, date and time, and break length
         String[] dates = newText.split(",");
         String newdates = "";
 
@@ -88,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
         //remove extra space at beginning of string
         newdates = newdates.substring(1,newdates.length());
-        //remove space from any PHOFF entries
+        //remove space from any public holiday PHOFF entries
         newdates = newdates.replaceAll("PHOFF ", "PHOFF");
         //split into day month and time
         String [] dayMonthTime = newdates.split(" ");
@@ -104,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         int day = 0, month = 0, startHour = 0, startMinute = 0, endHour = 0, endMinute= 0;
         String timeString = "";
 
-        //get month from first roster entry
+        //get month from first roster date entry
         SimpleDateFormat format = new SimpleDateFormat("MMM");
         try {
             Date date = format.parse(shiftsArray[1]);
@@ -115,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i("YEP", "fail");
         };
 
+        //add each shift to calendar
         for(int i = 0; i < shiftsArray.length; i+=3){
             //check if day of month is one or two digits and add to day variable
             if (shiftsArray[i].substring(0,2).matches("\\d+(?:\\.\\d+)?"))
@@ -129,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
                 endHour = Integer.parseInt(shiftsArray[i + 2].substring(6, 8));
                 endMinute = Integer.parseInt(shiftsArray[i + 2].substring(9, 11));
 
+                //check if shift is in morning and has leading zero and store accordingly
                 if (shiftsArray[i + 2].substring(0, 1).matches("0"))
                     timeString = shiftsArray[i + 2].substring(1, 11);
                 else
@@ -163,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int getCalendarId(Context context) {
-
+        //get primary google account calendar ID
         Cursor cursor = null;
         ContentResolver contentResolver = context.getContentResolver();
         Uri calendars = CalendarContract.Calendars.CONTENT_URI;
